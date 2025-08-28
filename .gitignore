@@ -1,0 +1,93 @@
+HELP.md
+.gradle
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+bin/
+!**/src/main/**/bin/
+!**/src/test/**/bin/
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+out/
+!**/src/main/**/out/
+!**/src/test/**/out/
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+
+### VS Code ###
+.vscode/
+
+### OS ###
+.DS_Store
+Thumbs.db
+
+### IDE ###
+.idea/
+*.iml
+*.ipr
+*.iws
+
+### Build tools ###
+/target/
+/build/
+/out/
+
+### Gradle ###
+.gradle/
+/!gradle/wrapper/gradle-wrapper.jar
+gradle-app.setting
+
+### Logs ###
+*.log
+logs/
+*.out
+
+### Spring Boot ###
+# Embedded server working directory
+*.pid
+*.war
+*.ear
+
+### Database ###
+*.db
+*.h2.db
+*.mv.db
+
+### Node (프론트엔드 같이 있을 때) ###
+node_modules/
+npm-debug.log
+yarn-error.log
+.pnp/
+.pnp.js
+.pnp.cjs
+
+### Test ###
+/test-output/
+/coverage/
+/jacoco/
+
+### Others ###
+/bin/
+/tmp/
+/.vscode/
+/.env
+.env.*
