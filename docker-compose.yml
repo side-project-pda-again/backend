@@ -1,0 +1,46 @@
+services:
+  db:
+    image: mysql:8.4
+    container_name: pdaetf-mysql
+    environment:
+      MYSQL_DATABASE: "pdaetf"
+      MYSQL_USER: "pda"
+      MYSQL_PASSWORD: "pda1234!"
+      MYSQL_ROOT_PASSWORD: "root1234!"
+      TZ: "Asia/Seoul"
+    ports:
+      - "3307:3306"   # 호스트 3307 -> 컨테이너 3306
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$${MYSQL_ROOT_PASSWORD} --silent"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks: [pdaetf-net]
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: pdaetf-app
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: "docker"
+      DB_HOST: "db"
+      DB_PORT: "3306"
+      DB_NAME: "pdaetf"
+      DB_USERNAME: "pda"
+      DB_PASSWORD: "pda1234!"   # DB 비번과 반드시 동일
+      TZ: "Asia/Seoul"
+    ports:
+      - "8080:8080"
+    networks: [pdaetf-net]
+
+volumes:
+  mysql_data:
+
+networks:
+  pdaetf-net:
