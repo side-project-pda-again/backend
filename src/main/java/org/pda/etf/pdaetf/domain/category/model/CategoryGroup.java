@@ -19,5 +19,6 @@ public class CategoryGroup {
     private String code;
 
     @OneToMany(mappedBy = "group", cascade = CascadeType.ALL, orphanRemoval = true)
-    private Set<Category> categories = new HashSet<>();
+    @Builder.Default
+    private Set<Category> categories = new HashSet<>();  
 }

@@ -2,6 +2,8 @@ package org.pda.etf.pdaetf.domain.etf.model;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.pda.etf.pdaetf.domain.dividend.model.Dividend;
+import org.pda.etf.pdaetf.domain.price.model.DailyPrice;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.HashSet;
@@ -11,10 +13,8 @@ import java.util.Set;
 @Table(name = "etfs")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class Etf {
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long etfId;
-
-    @Column(nullable = false, length = 20)
+    @Id
+    @Column(name = "ticker", length = 20)
     private String ticker;
 
     private String managerName;
@@ -28,11 +28,14 @@ public class Etf {
     private Integer dividendPayoutsPerYear;
 
     @OneToMany(mappedBy = "etf", cascade = CascadeType.ALL, orphanRemoval = true)
-    private Set<EtfPrice> prices = new HashSet<>();
+    @Builder.Default
+    private Set<DailyPrice> dailyPrices = new HashSet<>();
 
     @OneToMany(mappedBy = "etf", cascade = CascadeType.ALL, orphanRemoval = true)
-    private Set<EtfDividend> dividends = new HashSet<>();
+    @Builder.Default
+    private Set<Dividend> dividends = new HashSet<>();
 
     @OneToMany(mappedBy = "etf", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
     private Set<EtfCategoryMap> categories = new HashSet<>();
 }
