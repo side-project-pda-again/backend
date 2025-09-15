@@ -5,6 +5,6 @@ import lombok.*;
 @Embeddable
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @EqualsAndHashCode
 public class EtfCategoryMapId implements java.io.Serializable {
-    private Long etfId;
+    private String ticker;
     private Long categoryId;
 }

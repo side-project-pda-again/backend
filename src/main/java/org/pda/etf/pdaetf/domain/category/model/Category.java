@@ -2,8 +2,6 @@ package org.pda.etf.pdaetf.domain.category.model;
 
 import jakarta.persistence.*;
 import lombok.*;
-import java.util.HashSet;
-import java.util.Set;
 @Entity
 @Table(name = "categories")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
