@@ -51,4 +51,23 @@ public class FavoriteService {
         fav.setCreatedAt(LocalDateTime.now());
         favoriteRepository.save(fav);
     }
+
+    @Transactional
+    public void removeFavorite(Long userId, String ticker){
+        if(userId == null || ticker == null || ticker.isBlank()){
+            throw new ApiException(ErrorCode.INVALID_INPUT, "userId와 ticker는 필수입니다.");
+        }
+        if(!userRepository.existsById(userId)){
+            throw new ApiException(ErrorCode.NOT_FOUND, "사용자를 찾을 수 없습니다.");
+        }
+        if(!etfRepository.existsByTicker(ticker)){
+            throw new ApiException(ErrorCode.NOT_FOUND, "종목을 찾을 수 없습니다.");
+        }
+
+        FavoriteId id = new FavoriteId(userId, ticker);
+        if(!favoriteRepository.existsById(id)){
+            return;
+        }
+        favoriteRepository.deleteById(id);
+    }
 }
