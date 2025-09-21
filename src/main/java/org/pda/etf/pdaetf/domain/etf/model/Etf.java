@@ -1,14 +1,18 @@
 package org.pda.etf.pdaetf.domain.etf.model;
 
+import com.fasterxml.jackson.annotation.JsonIdentityInfo;
+import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 import jakarta.persistence.*;
 import lombok.*;
 import org.pda.etf.pdaetf.domain.dividend.model.Dividend;
 import org.pda.etf.pdaetf.domain.price.model.DailyPrice;
-import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.Set;
 
+@JsonIdentityInfo(
+        generator = ObjectIdGenerators.PropertyGenerator.class,
+        property = "ticker"
+)
 @Entity
 @Table(name = "etfs")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder

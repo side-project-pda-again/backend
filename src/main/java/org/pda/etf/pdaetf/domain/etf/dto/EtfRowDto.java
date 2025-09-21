@@ -20,6 +20,7 @@ public class EtfRowDto {
     private BigDecimal prevClose;
     private BigDecimal change;
     private BigDecimal changePct;
+    private Long volume;
 
     private LocalDate latestDividendDate;
     private BigDecimal latestDividendAmount;

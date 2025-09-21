@@ -4,6 +4,7 @@ package org.pda.etf.pdaetf.domain.etf.repository.query;
 import com.querydsl.core.types.*;
 import com.querydsl.core.types.dsl.*;
 import com.querydsl.jpa.JPAExpressions;
+import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
 import org.pda.etf.pdaetf.domain.dividend.model.QDividend;
@@ -131,6 +132,7 @@ public class EtfQueryRepositoryImpl implements EtfQueryRepository {
                         dpPrev.close.as("prevClose"),
                         change.as("change"),
                         changePct.as("changePct"),
+                        dpLatest.volume.as("volume"),
                         Expressions.booleanTemplate("{0}", likedExists).as("liked"),
                         ExpressionUtils.as(latestDivDateSub, "latestDividendDate"), //최신 배당일
                         ExpressionUtils.as(latestDivAmountSub, "latestDividendAmount") //최신 배당금
@@ -140,8 +142,8 @@ public class EtfQueryRepositoryImpl implements EtfQueryRepository {
                 .leftJoin(dpPrev).on(joinPrev)
                 .where(where);
 
-        // 8) 정렬 적용 (화이트리스트)
-        applySort(dataQuery, pageable, likedExists);
+        // 8) 정렬 적용
+        applySort(dataQuery, pageable, likedExists, latestDivAmountSub);
 
         // 9) 페이징+조회
         var content = dataQuery
@@ -159,16 +161,17 @@ public class EtfQueryRepositoryImpl implements EtfQueryRepository {
         return new PageImpl<>(content, pageable, total);
     }
 
-    private void applySort(com.querydsl.jpa.impl.JPAQuery<?> query,
+    private void applySort(JPAQuery<?> query,
                            Pageable pageable,
-                           BooleanExpression likedExists) {
+                           BooleanExpression likedExists,
+                           SubQueryExpression<BigDecimal> latestDivAmountSub) {
 
         // (옵션) 즐겨찾기 우선
         NumberExpression<Integer> likedScore =
                 Expressions.numberTemplate(Integer.class, "CASE WHEN {0} THEN 1 ELSE 0 END", likedExists);
         query.orderBy(new OrderSpecifier<>(Order.DESC, likedScore));
 
-        // Pageable sort → 화이트리스트 매핑
+        // Pageable sort
         for (Sort.Order o : pageable.getSort()) {
             Order dir = o.isAscending() ? Order.ASC : Order.DESC;
             switch (o.getProperty()) {
@@ -182,6 +185,8 @@ public class EtfQueryRepositoryImpl implements EtfQueryRepository {
                             Expressions.numberTemplate(BigDecimal.class, "({0} - {1})", dpLatest.close, dpPrev.close);
                     query.orderBy(new OrderSpecifier<>(dir, ch));
                 }
+                case "volume"       ->query.orderBy(new OrderSpecifier<>(dir, dpLatest.volume));
+                case "latestDividendAmount" -> query.orderBy(new OrderSpecifier<>(dir, latestDivAmountSub).nullsLast());
                 default -> { /* 알 수 없는 속성은 무시 */ }
             }
         }
