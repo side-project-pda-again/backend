@@ -6,11 +6,15 @@ import org.pda.etf.pdaetf.common.exception.ApiException;
 import org.pda.etf.pdaetf.common.exception.ErrorCode;
 import org.pda.etf.pdaetf.domain.dividend.model.Dividend;
 import org.pda.etf.pdaetf.domain.dividend.repository.DividendRepository;
+import org.pda.etf.pdaetf.domain.etf.dto.EtfRowDto;
 import org.pda.etf.pdaetf.domain.etf.dto.ReturnCalculationDto;
 import org.pda.etf.pdaetf.domain.etf.model.Etf;
 import org.pda.etf.pdaetf.domain.etf.repository.EtfRepository;
+import org.pda.etf.pdaetf.domain.etf.repository.query.EtfQueryRepository;
 import org.pda.etf.pdaetf.domain.price.model.DailyPrice;
 import org.pda.etf.pdaetf.domain.price.repository.DailyPriceRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,6 +34,7 @@ public class EtfService {
     private final EtfRepository etfRepository;
     private final DailyPriceRepository dailyPriceRepository;
     private final DividendRepository dividendRepository;
+    private final EtfQueryRepository etfQueryRepository;
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd");
 
     public List<Etf> findAll() {
@@ -147,6 +152,14 @@ public class EtfService {
                 "날짜 형식이 올바르지 않습니다. YYYYMMDD 형식으로 입력해주세요."
             );
         }
+    }
+
+
+    /**
+     * ETF 검색 (최신가/전일가/변동/liked 포함)
+     */
+    public Page<EtfRowDto> searchEtfs(String query, Long categoryId, Pageable pageable, Long currentUserId){
+        return etfQueryRepository.searchEtfs(query, categoryId, currentUserId, pageable);
     }
 
 }

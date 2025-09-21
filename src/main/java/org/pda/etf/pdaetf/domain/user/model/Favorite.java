@@ -18,7 +18,7 @@ public class Favorite {
     private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @MapsId("etfId")
+    @MapsId("ticker")
     private Etf etf;
 
     private LocalDateTime createdAt;

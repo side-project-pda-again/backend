@@ -16,16 +16,8 @@ public class Etf {
     @Id
     @Column(name = "ticker", length = 20)
     private String ticker;
-
-    private String managerName;
-    private String exchange;
-    private String baseCurrency;
-
-    private LocalDate listingDate;
-    private LocalDate delistingDate;
-
-    private BigDecimal expenseRatio;
-    private Integer dividendPayoutsPerYear;
+    private String kr_isnm; //한국 상장명
+    private String market; //시장 구분
 
     @OneToMany(mappedBy = "etf", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default

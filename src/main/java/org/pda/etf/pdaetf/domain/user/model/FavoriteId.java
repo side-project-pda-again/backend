@@ -6,5 +6,5 @@ import lombok.*;
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @EqualsAndHashCode
 public class FavoriteId implements java.io.Serializable {
     private Long userId;
-    private Long etfId;
+    private String ticker;
 }

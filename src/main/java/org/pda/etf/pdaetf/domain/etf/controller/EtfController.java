@@ -5,6 +5,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.pda.etf.pdaetf.common.dto.ApiResponse;
 import org.pda.etf.pdaetf.common.exception.ApiException;
 import org.pda.etf.pdaetf.common.exception.ErrorCode;
+import org.pda.etf.pdaetf.domain.etf.dto.EtfRowDto;
+import org.pda.etf.pdaetf.domain.etf.dto.ReturnEtfSearchDto;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.pda.etf.pdaetf.domain.etf.dto.ReturnCalculationDto;
@@ -88,5 +94,33 @@ public class EtfController {
 		} finally {
 			log.info("API 완료 - GET /api/etfs/{}/return-calculation,", ticker);
 		}
+	}
+
+	/**
+	 * 종목 검색
+	 * @param query 티커/운용사/etf 부분일치
+	 * @param categoryId 카테고리 필터
+	 */
+	@GetMapping("/")
+	public ResponseEntity<ApiResponse<ReturnEtfSearchDto>> search(
+			@RequestParam(required = false) String query,
+			@RequestParam(required = false) Long categoryId,
+			@PageableDefault(size=20, sort="ticker", direction = Sort.Direction.ASC) Pageable pageable,
+			@RequestParam(name="sort", required = false, defaultValue = "ticker,asc") String sortParam
+	){
+		Long currentUserId = null; // TODO
+
+		Page<EtfRowDto> page = etfService.searchEtfs(query, categoryId, pageable, currentUserId);
+
+		ReturnEtfSearchDto body = ReturnEtfSearchDto.builder()
+				.content(page.getContent())   // ← EtfRowDto 목록
+				.page(page.getNumber())
+				.size(page.getSize())
+				.totalElements(page.getTotalElements())
+				.totalPages(page.getTotalPages())
+				.sort(sortParam)
+				.build();
+
+		return ResponseEntity.ok(ApiResponse.ok(body));
 	}
 }
