@@ -14,7 +14,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<?>> handleApiException(ApiException e) {
         return ResponseEntity
                 .status(e.getErrorCode().getStatus())
-                .body(ApiResponse.fail(e.getErrorCode().getMessage()));
+                .body(ApiResponse.fail(e.getMessage()));
     }
 
     // DTO 검증 실패 (ex: @Valid)

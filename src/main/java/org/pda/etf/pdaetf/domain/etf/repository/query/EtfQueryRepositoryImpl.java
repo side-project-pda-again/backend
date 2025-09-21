@@ -25,133 +25,50 @@ public class EtfQueryRepositoryImpl implements EtfQueryRepository {
 
     private final JPAQueryFactory queryFactory;
 
-    // === Q타입 준비 (QueryDSL이 생성)
     private static final QEtf etf = QEtf.etf;
-    private static final QEtfCategoryMap map = QEtfCategoryMap.etfCategoryMap;
-
-    // 같은 테이블을 최신/전일 용도로 두 번 조인해야 하므로 별칭 사용
+    private static final QFavorite favorite = QFavorite.favorite;
     private static final QDailyPrice dpLatest = new QDailyPrice("dpLatest");
     private static final QDailyPrice dpPrev   = new QDailyPrice("dpPrev");
-
-    private static final QFavorite favorite = QFavorite.favorite;
-
     private static final QDividend div1 = QDividend.dividend;
-    private static final QDividend div2 = new QDividend("div2"); //금액 조회용
+    private static final QDividend div2 = new QDividend("div2");
 
     @Override
     public Page<EtfRowDto> searchEtfs(String query, Long categoryId, Long currentUserId, Pageable pageable) {
-
-        // 1) 동적 WHERE
+        // 베이스 where
         BooleanExpression where = Expressions.TRUE.isTrue();
         if (query != null && !query.isBlank()) {
             String like = "%" + query.toLowerCase() + "%";
-            where = where.and(
-                    etf.ticker.lower().like(like)
-                            .or(etf.kr_isnm.lower().like(like))
-            );
+            where = where.and(etf.ticker.lower().like(like).or(etf.kr_isnm.lower().like(like)));
         }
         if (categoryId != null) {
             where = where.and(
                     JPAExpressions.selectOne()
-                            .from(map)
+                            .from(QEtfCategoryMap.etfCategoryMap)
                             .where(
-                                    map.etf.ticker.eq(etf.ticker),
-                                    map.id.categoryId.eq(categoryId)
+                                    QEtfCategoryMap.etfCategoryMap.etf.ticker.eq(etf.ticker),
+                                    QEtfCategoryMap.etfCategoryMap.id.categoryId.eq(categoryId)
                             ).exists()
             );
         }
 
-        // 2) “해당 티커의 최신 영업일” 서브쿼리
-        SubQueryExpression<LocalDate> latestDateSub =
-                JPAExpressions.select(dpLatest.stndDate.max())
-                        .from(dpLatest)
-                        .where(dpLatest.ticker.eq(etf.ticker));
+        // liked 표시 방식
+        BooleanExpression likedExists = (currentUserId == null)
+                ? Expressions.booleanTemplate("false")
+                : JPAExpressions.selectOne().from(favorite)
+                .where(favorite.id.userId.eq(currentUserId),
+                        favorite.id.ticker.eq(etf.ticker))
+                .exists();
 
-        // 3) 최신가 조인: ticker 동일 + stndDate = 최신일자
-        BooleanExpression joinLatest =
-                dpLatest.ticker.eq(etf.ticker)
-                        .and(dpLatest.stndDate.eq(latestDateSub));
+        // 공통 쿼리 빌드 (onlyFavorites=false)
+        var dataQuery = buildBaseEtfQuery(where, likedExists, false);
 
-        // 4) 전일가 서브쿼리 & 조인: 최신일자보다 작은 값 중 MAX
-        SubQueryExpression<java.time.LocalDate> prevDateSub =
-                JPAExpressions.select(dpPrev.stndDate.max())
-                        .from(dpPrev)
-                        .where(
-                                dpPrev.ticker.eq(etf.ticker),
-                                dpPrev.stndDate.lt(latestDateSub)
-                        );
+        applySort(dataQuery, pageable);
 
-        BooleanExpression joinPrev =
-                dpPrev.ticker.eq(etf.ticker)
-                        .and(dpPrev.stndDate.eq(prevDateSub));
-
-        // 5) 즐겨찾기 여부 EXISTS
-        BooleanExpression likedExists =
-                (currentUserId == null)
-                        ? Expressions.FALSE.isTrue()
-                        : JPAExpressions.selectOne()
-                        .from(favorite)
-                        .where(
-                                favorite.id.userId.eq(currentUserId),
-                                favorite.id.ticker.eq(etf.ticker)
-                        ).exists();
-
-        // 6) 최신 배당일자 + 금액
-        SubQueryExpression<LocalDate> latestDivDateSub =
-                JPAExpressions.select(div1.stndDate.max())
-                        .from(div1)
-                        .where(div1.ticker.eq(etf.ticker));
-        SubQueryExpression<BigDecimal> latestDivAmountSub =
-                JPAExpressions.select(div2.dividendAmount)
-                        .from(div2)
-                        .where(div2.ticker.eq(etf.ticker), div2.stndDate.eq(latestDivDateSub));
-
-        // 6) 파생값(변동/변동률) 표현식
-        NumberExpression<BigDecimal> latestPrice = dpLatest.close; // not null @Column(nullable=false)
-        NumberExpression<BigDecimal> prevClose   = dpPrev.close;   // null 가능
-
-        NumberExpression<BigDecimal> change =
-                Expressions.numberTemplate(BigDecimal.class,
-                        "CASE WHEN {0} IS NULL OR {1} IS NULL THEN NULL ELSE ({0} - {1}) END",
-                        latestPrice, prevClose);
-
-        NumberExpression<BigDecimal> changePct =
-                Expressions.numberTemplate(BigDecimal.class,
-                        "CASE WHEN {0} IS NULL OR {0} = 0 THEN NULL ELSE (({1} / {0}) * 100) END",
-                        prevClose, change);
-
-        // 7) 데이터 쿼리 (프로젝션: 인터페이스 매칭을 위해 alias 중요)
-        var dataQuery = queryFactory
-                .select(Projections.fields(
-                        EtfRowDto.class,
-                        etf.ticker.as("ticker"),
-                        etf.kr_isnm.as("krIsnm"),
-                        etf.market.as("market"),
-                        dpLatest.stndDate.as("stndDate"),
-                        latestPrice.as("latestPrice"),
-                        dpPrev.close.as("prevClose"),
-                        change.as("change"),
-                        changePct.as("changePct"),
-                        dpLatest.volume.as("volume"),
-                        Expressions.booleanTemplate("{0}", likedExists).as("liked"),
-                        ExpressionUtils.as(latestDivDateSub, "latestDividendDate"), //최신 배당일
-                        ExpressionUtils.as(latestDivAmountSub, "latestDividendAmount") //최신 배당금
-                ))
-                .from(etf)
-                .leftJoin(dpLatest).on(joinLatest)
-                .leftJoin(dpPrev).on(joinPrev)
-                .where(where);
-
-        // 8) 정렬 적용
-        applySort(dataQuery, pageable, likedExists, latestDivAmountSub);
-
-        // 9) 페이징+조회
         var content = dataQuery
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
                 .fetch();
 
-        // 10) 카운트
         long total = queryFactory
                 .select(etf.ticker.count())
                 .from(etf)
@@ -161,37 +78,144 @@ public class EtfQueryRepositoryImpl implements EtfQueryRepository {
         return new PageImpl<>(content, pageable, total);
     }
 
-    private void applySort(JPAQuery<?> query,
-                           Pageable pageable,
-                           BooleanExpression likedExists,
-                           SubQueryExpression<BigDecimal> latestDivAmountSub) {
+    @Override
+    public Page<EtfRowDto> findFavoriteEtfs(Long userId, String query, Pageable pageable) {
+        if (userId == null) return Page.empty(pageable);
 
-        // (옵션) 즐겨찾기 우선
-        NumberExpression<Integer> likedScore =
-                Expressions.numberTemplate(Integer.class, "CASE WHEN {0} THEN 1 ELSE 0 END", likedExists);
-        query.orderBy(new OrderSpecifier<>(Order.DESC, likedScore));
+        // 즐겨찾기 where
+        BooleanExpression where = favorite.id.userId.eq(userId)
+                .and(favorite.id.ticker.eq(etf.ticker));
 
-        // Pageable sort
+        // (옵션) 키워드
+        if (query != null && !query.isBlank()) {
+            String like = "%" + query.toLowerCase() + "%";
+            where = where.and(etf.ticker.lower().like(like).or(etf.kr_isnm.lower().like(like)));
+        }
+
+        // liked는 true 고정
+        BooleanExpression likedExpr = Expressions.booleanTemplate("true");
+
+        // 공통 쿼리 빌드 (onlyFavorites=true → favorite 조인)
+        var dataQuery = buildBaseEtfQuery(where, likedExpr, true);
+
+        applySort(dataQuery, pageable);
+
+        var content = dataQuery
+                .offset(pageable.getOffset())
+                .limit(pageable.getPageSize())
+                .fetch();
+
+        long total = queryFactory
+                .select(etf.ticker.count())
+                .from(etf)
+                .join(favorite).on(favorite.id.ticker.eq(etf.ticker))
+                .where(where)
+                .fetchOne();
+
+        return new PageImpl<>(content, pageable, total);
+    }
+
+    /** 공통 SELECT/서브쿼리/파생값/조인 전략 */
+    private JPAQuery<EtfRowDto> buildBaseEtfQuery(BooleanExpression where,
+                                                  BooleanExpression likedExpr,
+                                                  boolean onlyFavorites) {
+        // 최신/전일 일자
+        SubQueryExpression<LocalDate> latestDateSub =
+                JPAExpressions.select(dpLatest.stndDate.max())
+                        .from(dpLatest)
+                        .where(dpLatest.ticker.eq(etf.ticker));
+
+        SubQueryExpression<LocalDate> prevDateSub =
+                JPAExpressions.select(dpPrev.stndDate.max())
+                        .from(dpPrev)
+                        .where(dpPrev.ticker.eq(etf.ticker), dpPrev.stndDate.lt(latestDateSub));
+
+        // 최신 배당
+        SubQueryExpression<LocalDate> latestDivDateSub =
+                JPAExpressions.select(div1.stndDate.max())
+                        .from(div1)
+                        .where(div1.ticker.eq(etf.ticker));
+
+        SubQueryExpression<BigDecimal> latestDivAmountSub =
+                JPAExpressions.select(div2.dividendAmount)
+                        .from(div2)
+                        .where(div2.ticker.eq(etf.ticker), div2.stndDate.eq(latestDivDateSub));
+
+        // 조인 조건
+        BooleanExpression joinLatest = dpLatest.ticker.eq(etf.ticker)
+                .and(dpLatest.stndDate.eq(latestDateSub));
+        BooleanExpression joinPrev = dpPrev.ticker.eq(etf.ticker)
+                .and(dpPrev.stndDate.eq(prevDateSub));
+
+        // 파생값
+        NumberExpression<BigDecimal> change =
+                Expressions.numberTemplate(BigDecimal.class,
+                        "CASE WHEN {0} IS NULL OR {1} IS NULL THEN NULL ELSE ({0} - {1}) END",
+                        dpLatest.close, dpPrev.close);
+        NumberExpression<BigDecimal> changePct =
+                Expressions.numberTemplate(BigDecimal.class,
+                        "CASE WHEN {0} IS NULL OR {0} = 0 THEN NULL ELSE (({1} / {0}) * 100) END",
+                        dpPrev.close, change);
+
+        // FROM/JOIN 구성 (favorites만 조회 시에는 조인 강제)
+        var from = queryFactory
+                .select(Projections.fields(
+                        EtfRowDto.class,
+                        etf.ticker.as("ticker"),
+                        etf.kr_isnm.as("krIsnm"),
+                        etf.market.as("market"),
+                        dpLatest.stndDate.as("stndDate"),
+                        dpLatest.close.as("latestPrice"),
+                        dpPrev.close.as("prevClose"),
+                        change.as("change"),
+                        changePct.as("changePct"),
+                        dpLatest.volume.as("volume"),
+                        ExpressionUtils.as(latestDivDateSub, "latestDividendDate"),
+                        ExpressionUtils.as(latestDivAmountSub, "latestDividendAmount"),
+                        Expressions.booleanTemplate("{0}", likedExpr).as("liked")
+                ))
+                .from(etf);
+
+        if (onlyFavorites) {
+            from.join(favorite).on(favorite.id.ticker.eq(etf.ticker));
+        }
+
+        return from
+                .leftJoin(dpLatest).on(joinLatest)
+                .leftJoin(dpPrev).on(joinPrev)
+                .where(where);
+    }
+
+    /** 공통 정렬(배당 nullsLast 포함) + tie-breaker */
+    private void applySort(JPAQuery<?> query, Pageable pageable) {
         for (Sort.Order o : pageable.getSort()) {
             Order dir = o.isAscending() ? Order.ASC : Order.DESC;
             switch (o.getProperty()) {
-                case "ticker"      -> query.orderBy(new OrderSpecifier<>(dir, etf.ticker));
-                case "krIsnm"      -> query.orderBy(new OrderSpecifier<>(dir, etf.kr_isnm));
-                case "market"      -> query.orderBy(new OrderSpecifier<>(dir, etf.market));
-                case "stndDate"    -> query.orderBy(new OrderSpecifier<>(dir, dpLatest.stndDate));
-                case "latestPrice" -> query.orderBy(new OrderSpecifier<>(dir, dpLatest.close));
-                case "change"      -> {
+                case "ticker"               -> query.orderBy(new OrderSpecifier<>(dir, etf.ticker));
+                case "krIsnm"               -> query.orderBy(new OrderSpecifier<>(dir, etf.kr_isnm));
+                case "market"               -> query.orderBy(new OrderSpecifier<>(dir, etf.market));
+                case "stndDate"             -> query.orderBy(new OrderSpecifier<>(dir, dpLatest.stndDate));
+                case "latestPrice"          -> query.orderBy(new OrderSpecifier<>(dir, dpLatest.close));
+                case "change"               -> {
                     NumberExpression<BigDecimal> ch =
                             Expressions.numberTemplate(BigDecimal.class, "({0} - {1})", dpLatest.close, dpPrev.close);
                     query.orderBy(new OrderSpecifier<>(dir, ch));
                 }
-                case "volume"       ->query.orderBy(new OrderSpecifier<>(dir, dpLatest.volume));
-                case "latestDividendAmount" -> query.orderBy(new OrderSpecifier<>(dir, latestDivAmountSub).nullsLast());
-                default -> { /* 알 수 없는 속성은 무시 */ }
+                case "volume"               -> query.orderBy(new OrderSpecifier<>(dir, dpLatest.volume));
+                case "latestDividendDate"   -> query.orderBy(new OrderSpecifier<>(dir,
+                        JPAExpressions.select(div1.stndDate.max()).from(div1).where(div1.ticker.eq(etf.ticker))
+                ).nullsLast());
+                case "latestDividendAmount" -> query.orderBy(new OrderSpecifier<>(dir,
+                        JPAExpressions.select(div2.dividendAmount)
+                                .from(div2)
+                                .where(div2.ticker.eq(etf.ticker),
+                                        div2.stndDate.eq(
+                                                JPAExpressions.select(div1.stndDate.max()).from(div1).where(div1.ticker.eq(etf.ticker))
+                                        ))
+                ).nullsLast());
+                default -> { /* ignore */ }
             }
         }
-
-        // tie-breaker
         query.orderBy(new OrderSpecifier<>(Order.ASC, etf.ticker));
     }
 }

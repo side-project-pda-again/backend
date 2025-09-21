@@ -6,4 +6,5 @@ import org.springframework.data.domain.Pageable;
 
 public interface EtfQueryRepository {
     Page<EtfRowDto> searchEtfs(String query, Long categoryId, Long currentUserId, Pageable pageable);
+    Page<EtfRowDto> findFavoriteEtfs(Long userId, String query, Pageable pageable);
 }

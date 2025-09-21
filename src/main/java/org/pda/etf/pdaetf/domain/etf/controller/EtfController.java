@@ -17,6 +17,8 @@ import org.pda.etf.pdaetf.domain.etf.dto.ReturnCalculationDto;
 import org.pda.etf.pdaetf.domain.etf.model.Etf;
 import org.pda.etf.pdaetf.domain.etf.service.EtfService;
 
+import java.util.Set;
+
 @Slf4j
 @RestController
 @RequiredArgsConstructor
@@ -24,6 +26,10 @@ import org.pda.etf.pdaetf.domain.etf.service.EtfService;
 public class EtfController {
 
 	private final EtfService etfService;
+	private static final Set<String> ALLOWED_SORT_KEYS = Set.of(
+			"ticker","krIsnm","market","stndDate","latestPrice","change","volume",
+			"latestDividendDate","latestDividendAmount"
+	);
 
 	@GetMapping("/{ticker}")
 	public ResponseEntity<ApiResponse<Etf>> getOne(@PathVariable String ticker) {
@@ -96,10 +102,14 @@ public class EtfController {
 		}
 	}
 
+
 	/**
 	 * 종목 검색
-	 * @param query 티커/운용사/etf 부분일치
-	 * @param categoryId 카테고리 필터
+	 * @param query ticker, 종목명 검색
+	 * @param categoryId
+	 * @param pageable
+	 * @param sortParam ex)volume, desc
+	 * @return 종목 검색 결과
 	 */
 	@GetMapping("/")
 	public ResponseEntity<ApiResponse<ReturnEtfSearchDto>> search(
@@ -108,7 +118,15 @@ public class EtfController {
 			@PageableDefault(size=20, sort="ticker", direction = Sort.Direction.ASC) Pageable pageable,
 			@RequestParam(name="sort", required = false, defaultValue = "ticker,asc") String sortParam
 	){
-		Long currentUserId = null; // TODO
+		Long currentUserId = null; // TODO: 유저 정보 가져오기
+
+		for (Sort.Order o : pageable.getSort()) {
+			String key = o.getProperty();
+			if (!ALLOWED_SORT_KEYS.contains(key)) {
+				log.error("즐겨찾기 조회 실패 - 지원하지 않는 정렬 키, key: {}", key);
+				throw new ApiException(ErrorCode.INVALID_INPUT, key+"는 지원하지 않는 정렬 키입니다.");
+			}
+		}
 
 		Page<EtfRowDto> page = etfService.searchEtfs(query, categoryId, pageable, currentUserId);
 
@@ -119,6 +137,46 @@ public class EtfController {
 				.totalElements(page.getTotalElements())
 				.totalPages(page.getTotalPages())
 				.sort(sortParam)
+				.build();
+
+		return ResponseEntity.ok(ApiResponse.ok(body));
+	}
+
+
+	/**
+	 * 유저의 즐겨찾기한 종목 조회
+	 * @param userId
+	 * @param query ticker, 종목명 검색
+	 * @param pageable
+	 * @return 즐겨찾기한 종목 검색 결과
+	 * TODO: userId param이 아닌 인증 정보로 받기
+	 */
+	@GetMapping("/favorites")
+	public ResponseEntity<ApiResponse<ReturnEtfSearchDto>> getFavorites(
+			@RequestParam Long userId,
+			@RequestParam(required = false) String query,
+			@PageableDefault(size=20, sort="ticker", direction = Sort.Direction.ASC) Pageable pageable
+	){
+		if(pageable.getPageNumber() < 0){
+			log.error("즐겨찾기 조회 실패 - page가 0 미만임, page: {}", pageable.getPageNumber());
+			throw new ApiException(ErrorCode.INVALID_INPUT, "page는 0 이상이어야 합니다.");
+		}
+		for (Sort.Order o : pageable.getSort()) {
+			String key = o.getProperty();
+			if (!ALLOWED_SORT_KEYS.contains(key)) {
+				log.error("즐겨찾기 조회 실패 - 지원하지 않는 , page: {}", pageable.getPageNumber());
+				throw new ApiException(ErrorCode.INVALID_INPUT, "지원하지 않는 정렬 키: " + key);
+			}
+		}
+		Page<EtfRowDto> page = etfService.findFavoriteEtfs(userId, query, pageable);
+
+		ReturnEtfSearchDto body = ReturnEtfSearchDto.builder()
+				.content(page.getContent())
+				.page(page.getNumber())
+				.size(page.getSize())
+				.totalElements(page.getTotalElements())
+				.totalPages(page.getTotalPages())
+				.sort(pageable.getSort().toString())
 				.build();
 
 		return ResponseEntity.ok(ApiResponse.ok(body));

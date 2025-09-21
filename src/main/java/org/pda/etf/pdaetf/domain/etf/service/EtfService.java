@@ -162,4 +162,11 @@ public class EtfService {
         return etfQueryRepository.searchEtfs(query, categoryId, currentUserId, pageable);
     }
 
+
+    /**
+     *
+     */
+    public Page<EtfRowDto> findFavoriteEtfs(Long userId, String query, Pageable pageable) {
+        return etfQueryRepository.findFavoriteEtfs(userId, query, pageable);
+    }
 }
