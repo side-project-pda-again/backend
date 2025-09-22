@@ -1,7 +1,8 @@
-package org.pda.etf.pdaetf.domain.user.model;
+package org.pda.etf.pdaetf.domain.Portfolio.model;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.pda.etf.pdaetf.domain.user.model.User;
 
 import java.time.LocalDateTime;
 import java.util.LinkedHashSet;

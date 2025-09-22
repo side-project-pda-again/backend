@@ -1,4 +1,3 @@
-// domain/etf/repository/query/EtfQueryRepositoryImpl.java
 package org.pda.etf.pdaetf.domain.etf.repository.query;
 
 import com.querydsl.core.types.*;
@@ -116,7 +115,7 @@ public class EtfQueryRepositoryImpl implements EtfQueryRepository {
     }
 
     /** 공통 SELECT/서브쿼리/파생값/조인 전략 */
-    private JPAQuery<EtfRowDto> buildBaseEtfQuery(BooleanExpression where,
+    public JPAQuery<EtfRowDto> buildBaseEtfQuery(BooleanExpression where,
                                                   BooleanExpression likedExpr,
                                                   boolean onlyFavorites) {
         // 최신/전일 일자
@@ -187,7 +186,7 @@ public class EtfQueryRepositoryImpl implements EtfQueryRepository {
     }
 
     /** 공통 정렬(배당 nullsLast 포함) + tie-breaker */
-    private void applySort(JPAQuery<?> query, Pageable pageable) {
+    public void applySort(JPAQuery<?> query, Pageable pageable) {
         for (Sort.Order o : pageable.getSort()) {
             Order dir = o.isAscending() ? Order.ASC : Order.DESC;
             switch (o.getProperty()) {

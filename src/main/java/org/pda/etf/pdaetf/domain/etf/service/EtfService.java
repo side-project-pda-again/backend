@@ -164,7 +164,7 @@ public class EtfService {
 
 
     /**
-     *
+     * 즐겨찾기한 ETF 조회
      */
     public Page<EtfRowDto> findFavoriteEtfs(Long userId, String query, Pageable pageable) {
         return etfQueryRepository.findFavoriteEtfs(userId, query, pageable);

@@ -11,7 +11,6 @@ import org.pda.etf.pdaetf.domain.user.model.FavoriteId;
 import org.pda.etf.pdaetf.domain.user.model.User;
 import org.pda.etf.pdaetf.domain.user.repository.FavoriteRepository;
 import org.pda.etf.pdaetf.domain.user.repository.UserRepository;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
