@@ -76,44 +76,6 @@ public class EtfQueryRepositoryImpl implements EtfQueryRepository {
 
         return new PageImpl<>(content, pageable, total);
     }
-
-    @Override
-    public Page<EtfRowDto> findFavoriteEtfs(Long userId, String query, Pageable pageable) {
-        if (userId == null) return Page.empty(pageable);
-
-        // 즐겨찾기 where
-        BooleanExpression where = favorite.id.userId.eq(userId)
-                .and(favorite.id.ticker.eq(etf.ticker));
-
-        // (옵션) 키워드
-        if (query != null && !query.isBlank()) {
-            String like = "%" + query.toLowerCase() + "%";
-            where = where.and(etf.ticker.lower().like(like).or(etf.kr_isnm.lower().like(like)));
-        }
-
-        // liked는 true 고정
-        BooleanExpression likedExpr = Expressions.booleanTemplate("true");
-
-        // 공통 쿼리 빌드 (onlyFavorites=true → favorite 조인)
-        var dataQuery = buildBaseEtfQuery(where, likedExpr, true);
-
-        applySort(dataQuery, pageable);
-
-        var content = dataQuery
-                .offset(pageable.getOffset())
-                .limit(pageable.getPageSize())
-                .fetch();
-
-        long total = queryFactory
-                .select(etf.ticker.count())
-                .from(etf)
-                .join(favorite).on(favorite.id.ticker.eq(etf.ticker))
-                .where(where)
-                .fetchOne();
-
-        return new PageImpl<>(content, pageable, total);
-    }
-
     /** 공통 SELECT/서브쿼리/파생값/조인 전략 */
     public JPAQuery<EtfRowDto> buildBaseEtfQuery(BooleanExpression where,
                                                   BooleanExpression likedExpr,

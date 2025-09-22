@@ -4,6 +4,7 @@ import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.pda.etf.pdaetf.common.exception.ApiException;
 import org.pda.etf.pdaetf.common.exception.ErrorCode;
+import org.pda.etf.pdaetf.domain.etf.dto.EtfRowDto;
 import org.pda.etf.pdaetf.domain.etf.model.Etf;
 import org.pda.etf.pdaetf.domain.etf.repository.EtfRepository;
 import org.pda.etf.pdaetf.domain.user.model.Favorite;
@@ -11,6 +12,9 @@ import org.pda.etf.pdaetf.domain.user.model.FavoriteId;
 import org.pda.etf.pdaetf.domain.user.model.User;
 import org.pda.etf.pdaetf.domain.user.repository.FavoriteRepository;
 import org.pda.etf.pdaetf.domain.user.repository.UserRepository;
+import org.pda.etf.pdaetf.domain.user.repository.query.FavoriteQueryRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,6 +26,7 @@ import java.time.LocalDateTime;
 public class FavoriteService {
 
     private final FavoriteRepository favoriteRepository;
+    private final FavoriteQueryRepository favoriteQueryRepository;
     private final UserRepository userRepository;
     private final EtfRepository etfRepository;
     private final EntityManager em;
@@ -68,5 +73,14 @@ public class FavoriteService {
             return;
         }
         favoriteRepository.deleteById(id);
+    }
+
+
+    /**
+     * 즐겨찾기한 ETF 조회
+     */
+    @Transactional
+    public Page<EtfRowDto> findFavoriteEtfs(Long userId, String query, Pageable pageable) {
+        return favoriteQueryRepository.findFavoriteEtfs(userId, query, pageable);
     }
 }

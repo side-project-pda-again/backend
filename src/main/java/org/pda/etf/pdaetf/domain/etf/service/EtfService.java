@@ -161,12 +161,4 @@ public class EtfService {
     public Page<EtfRowDto> searchEtfs(String query, Long categoryId, Pageable pageable, Long currentUserId){
         return etfQueryRepository.searchEtfs(query, categoryId, currentUserId, pageable);
     }
-
-
-    /**
-     * 즐겨찾기한 ETF 조회
-     */
-    public Page<EtfRowDto> findFavoriteEtfs(Long userId, String query, Pageable pageable) {
-        return etfQueryRepository.findFavoriteEtfs(userId, query, pageable);
-    }
 }
