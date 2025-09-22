@@ -54,12 +54,18 @@ public class PortfolioController {
      * @param userId
      * @return 삭제 성공 여부
      */
-    @DeleteMapping("/{portfolioId}/items/{ticker}")
+    @DeleteMapping("/{portfolioId}/items")
     public ResponseEntity<ApiResponse<Void>> removeItem(
             @PathVariable Long portfolioId,
-            @PathVariable String ticker,
+            @RequestParam String ticker,
             @RequestParam Long userId
     ){
+        if(ticker == null || ticker.isBlank()){
+            throw new ApiException(ErrorCode.INVALID_INPUT, "ticker는 필수입니다.");
+        }
+        if(userId == null){
+            throw new ApiException(ErrorCode.INVALID_INPUT, "userId는 필수입니다.");
+        }
         portfolioService.removeEtf(userId, portfolioId, ticker);
         return ResponseEntity.ok(ApiResponse.ok(null, "포트폴리오에서 종목이 삭제되었습니다."));
     }

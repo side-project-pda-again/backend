@@ -68,6 +68,9 @@ public class PortfolioService {
         if(!p.getOwner().getUserId().equals(userId)){
             throw new ApiException(ErrorCode.UNAUTHORIZED, "해당 포트폴리오의 소유자가 아닙니다.");
         }
+        if(!etfRepository.existsByTicker(ticker)){
+            throw new ApiException(ErrorCode.NOT_FOUND, "종목을 찾을 수 없습니다.");
+        }
         PortfolioItemId id = new PortfolioItemId(portfolioId, ticker);
         portfolioItemRepository.findById(id).ifPresent(portfolioItemRepository::delete);
     }
