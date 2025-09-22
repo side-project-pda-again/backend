@@ -51,4 +51,19 @@ public class PortfolioService {
         portfolioItemRepository.save(item);
 
     }
+
+
+    /**
+     * 그룹에 ETF 삭제
+     */
+    @Transactional
+    public void removeEtf(Long userId, Long portfolioId, String ticker){
+        Portfolio p = portfolioRepository.findById(portfolioId)
+                .orElseThrow(()->new ApiException(ErrorCode.NOT_FOUND, "해당 포트폴리오를 찾을 수 없습니다."));
+        if(!p.getOwner().getUserId().equals(userId)){
+            throw new ApiException(ErrorCode.UNAUTHORIZED, "해당 포트폴리오의 소유자가 아닙니다.");
+        }
+        PortfolioItemId id = new PortfolioItemId(portfolioId, ticker);
+        portfolioItemRepository.findById(id).ifPresent(portfolioItemRepository::delete);
+    }
 }

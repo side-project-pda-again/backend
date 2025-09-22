@@ -38,4 +38,15 @@ public class PortfolioController {
         portfolioService.addEtf(userId, portfolioId, ticker);
         return ResponseEntity.ok(ApiResponse.ok(null, "포트폴리오에 종목이 추가되었습니다."));
     }
+
+
+    @DeleteMapping("/{portfolioId}/items/{ticker}")
+    public ResponseEntity<ApiResponse<Void>> removeItem(
+            @PathVariable Long portfolioId,
+            @PathVariable String ticker,
+            @RequestParam Long userId
+    ){
+        portfolioService.removeEtf(userId, portfolioId, ticker);
+        return ResponseEntity.ok(ApiResponse.ok(null, "포트폴리오에서 종목이 삭제되었습니다."));
+    }
 }
