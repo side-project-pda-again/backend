@@ -15,10 +15,12 @@ public class Favorite {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @MapsId("userId")
+    @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @MapsId("etfId")
+    @MapsId("ticker")
+    @JoinColumn(name = "etf_ticker", nullable = false, columnDefinition = "varchar(20)")
     private Etf etf;
 
     private LocalDateTime createdAt;
