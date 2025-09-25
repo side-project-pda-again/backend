@@ -1,11 +1,14 @@
 package org.pda.etf.pdaetf.domain.user.service;
 
+import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.core.types.dsl.Expressions;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.pda.etf.pdaetf.common.exception.ApiException;
 import org.pda.etf.pdaetf.common.exception.ErrorCode;
 import org.pda.etf.pdaetf.domain.etf.dto.EtfRowDto;
 import org.pda.etf.pdaetf.domain.etf.model.Etf;
+import org.pda.etf.pdaetf.domain.etf.model.QEtf;
 import org.pda.etf.pdaetf.domain.etf.repository.EtfRepository;
 import org.pda.etf.pdaetf.domain.user.model.Favorite;
 import org.pda.etf.pdaetf.domain.user.model.FavoriteId;
@@ -81,6 +84,16 @@ public class FavoriteService {
      */
     @Transactional
     public Page<EtfRowDto> findFavoriteEtfs(Long userId, String query, Pageable pageable) {
-        return favoriteQueryRepository.findFavoriteEtfs(userId, query, pageable);
+        BooleanExpression where = Expressions.TRUE.isTrue();
+
+        if(query != null && !query.isBlank()){
+            String like = "%" + query.trim().toLowerCase() + "%";
+            where = where.and(
+                    QEtf.etf.ticker.lower().like(like)
+                            .or(QEtf.etf.kr_isnm.lower().like(like))
+            );
+        }
+
+        return favoriteQueryRepository.findFavoriteEtfs(where, userId, pageable);
     }
 }

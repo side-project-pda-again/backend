@@ -1,4 +1,4 @@
-package org.pda.etf.pdaetf.domain.Portfolio.model;
+package org.pda.etf.pdaetf.domain.portfolio.model;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;

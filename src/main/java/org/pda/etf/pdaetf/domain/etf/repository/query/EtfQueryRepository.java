@@ -7,10 +7,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 public interface EtfQueryRepository {
-    Page<EtfRowDto> searchEtfs(String query, Long categoryId, Long currentUserId, Pageable pageable);
-
-    JPAQuery<EtfRowDto> buildBaseEtfQuery(BooleanExpression where,
-                                                 BooleanExpression likedExpr,
-                                                 boolean onlyFavorites);
-    void applySort(JPAQuery<?> query, Pageable pageable);
+    Page<EtfRowDto> searchEtfs(BooleanExpression baseFilter,
+                               Long currentUserId,
+                               Pageable pageable,
+                               Long categoryId);
 }
