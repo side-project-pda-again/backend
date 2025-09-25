@@ -111,7 +111,7 @@ public class EtfController {
 	 * @param sortParam ex)volume, desc
 	 * @return 종목 검색 결과
 	 */
-	@GetMapping("/")
+	@GetMapping({"/", ""})
 	public ResponseEntity<ApiResponse<ReturnEtfSearchDto>> search(
 			@RequestParam(required = false) String query,
 			@RequestParam(required = false) Long categoryId,
@@ -128,7 +128,7 @@ public class EtfController {
 			}
 		}
 
-		Page<EtfRowDto> page = etfService.searchEtfs(query, categoryId, pageable, currentUserId);
+		Page<EtfRowDto> page = etfService.search(query, categoryId, pageable, currentUserId);
 
 		ReturnEtfSearchDto body = ReturnEtfSearchDto.builder()
 				.content(page.getContent())   // ← EtfRowDto 목록

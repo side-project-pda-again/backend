@@ -1,9 +1,7 @@
-package org.pda.etf.pdaetf.domain.Portfolio.repository;
+package org.pda.etf.pdaetf.domain.portfolio.repository;
 
-import org.pda.etf.pdaetf.domain.Portfolio.model.Portfolio;
+import org.pda.etf.pdaetf.domain.portfolio.model.Portfolio;
 import org.springframework.data.jpa.repository.JpaRepository;
-
-import java.util.List;
 
 public interface PortfolioRepository extends JpaRepository<Portfolio, Long> {
 }

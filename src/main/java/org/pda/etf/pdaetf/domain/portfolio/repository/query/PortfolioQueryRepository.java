@@ -1,4 +1,4 @@
-package org.pda.etf.pdaetf.domain.Portfolio.repository.query;
+package org.pda.etf.pdaetf.domain.portfolio.repository.query;
 
 import org.pda.etf.pdaetf.domain.etf.dto.EtfRowDto;
 import org.springframework.data.domain.Page;

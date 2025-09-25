@@ -1,5 +1,7 @@
 package org.pda.etf.pdaetf.domain.etf.service;
 
+import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.core.types.dsl.Expressions;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.pda.etf.pdaetf.common.exception.ApiException;
@@ -9,6 +11,7 @@ import org.pda.etf.pdaetf.domain.dividend.repository.DividendRepository;
 import org.pda.etf.pdaetf.domain.etf.dto.EtfRowDto;
 import org.pda.etf.pdaetf.domain.etf.dto.ReturnCalculationDto;
 import org.pda.etf.pdaetf.domain.etf.model.Etf;
+import org.pda.etf.pdaetf.domain.etf.model.QEtf;
 import org.pda.etf.pdaetf.domain.etf.repository.EtfRepository;
 import org.pda.etf.pdaetf.domain.etf.repository.query.EtfQueryRepository;
 import org.pda.etf.pdaetf.domain.price.model.DailyPrice;
@@ -36,6 +39,7 @@ public class EtfService {
     private final DividendRepository dividendRepository;
     private final EtfQueryRepository etfQueryRepository;
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd");
+    private static final QEtf etf = QEtf.etf;
 
     public List<Etf> findAll() {
         return etfRepository.findAll();
@@ -158,7 +162,17 @@ public class EtfService {
     /**
      * ETF 검색 (최신가/전일가/변동/liked 포함)
      */
-    public Page<EtfRowDto> searchEtfs(String query, Long categoryId, Pageable pageable, Long currentUserId){
-        return etfQueryRepository.searchEtfs(query, categoryId, currentUserId, pageable);
+    public Page<EtfRowDto> search(String query, Long categoryId, Pageable pageable, Long currentUserId){
+        BooleanExpression where = Expressions.TRUE.isTrue();
+
+        if(query != null && !query.isBlank()){
+            String like = "%" + query.trim().toLowerCase() + "%";
+            where = where.and(
+                    QEtf.etf.ticker.lower().like(like)
+                            .or(QEtf.etf.kr_isnm.lower().like(like))
+            );
+        }
+
+        return etfQueryRepository.searchEtfs(where, currentUserId, pageable, categoryId);
     }
 }
