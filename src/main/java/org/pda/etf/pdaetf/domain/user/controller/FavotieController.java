@@ -75,8 +75,8 @@ public class FavotieController {
      * @param ticker
      * @return 추가 성공 여부
      */
-    @PostMapping("/{userId}/{ticker}")
-    public ResponseEntity<ApiResponse<Void>> add(@PathVariable Long userId, @PathVariable String ticker){
+    @PostMapping("/{ticker}")
+    public ResponseEntity<ApiResponse<Void>> add(@RequestParam Long userId, @PathVariable String ticker){
         favoriteService.addFavorite(userId, ticker);
         return ResponseEntity.ok(ApiResponse.ok(null, "즐겨찾기에 추가되었습니다."));
     }
@@ -87,8 +87,8 @@ public class FavotieController {
      * @param ticker
      * @return 삭제 성공 여부
      */
-    @DeleteMapping("/{userId}/{ticker}")
-    public ResponseEntity<ApiResponse<Void>> remove(@PathVariable Long userId, @PathVariable String ticker){
+    @DeleteMapping("/{ticker}")
+    public ResponseEntity<ApiResponse<Void>> remove(@RequestParam Long userId, @PathVariable String ticker){
         favoriteService.removeFavorite(userId, ticker);
         return ResponseEntity.ok(ApiResponse.ok(null, "즐겨찾기에서 삭제되었습니다."));
     }

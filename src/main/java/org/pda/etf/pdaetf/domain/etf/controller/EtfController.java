@@ -113,13 +113,12 @@ public class EtfController {
 	 */
 	@GetMapping({"/", ""})
 	public ResponseEntity<ApiResponse<ReturnEtfSearchDto>> search(
+			@RequestParam(required = false) Long userId,
 			@RequestParam(required = false) String query,
 			@RequestParam(required = false) Long categoryId,
 			@PageableDefault(size=20, sort="ticker", direction = Sort.Direction.ASC) Pageable pageable,
 			@RequestParam(name="sort", required = false, defaultValue = "ticker,asc") String sortParam
 	){
-		Long currentUserId = null; // TODO: 유저 정보 가져오기
-
 		for (Sort.Order o : pageable.getSort()) {
 			String key = o.getProperty();
 			if (!ALLOWED_SORT_KEYS.contains(key)) {
@@ -128,7 +127,7 @@ public class EtfController {
 			}
 		}
 
-		Page<EtfRowDto> page = etfService.search(query, categoryId, pageable, currentUserId);
+		Page<EtfRowDto> page = etfService.search(query, categoryId, pageable, userId);
 
 		ReturnEtfSearchDto body = ReturnEtfSearchDto.builder()
 				.content(page.getContent())   // ← EtfRowDto 목록
