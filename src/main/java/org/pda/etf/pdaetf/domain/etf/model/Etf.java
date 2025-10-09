@@ -8,6 +8,7 @@ import org.pda.etf.pdaetf.domain.dividend.model.Dividend;
 import org.pda.etf.pdaetf.domain.price.model.DailyPrice;
 import java.util.HashSet;
 import java.util.Set;
+import java.time.LocalDate;
 
 @JsonIdentityInfo(
         generator = ObjectIdGenerators.PropertyGenerator.class,
@@ -34,4 +35,8 @@ public class Etf {
     @OneToMany(mappedBy = "etf", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private Set<EtfCategoryMap> categories = new HashSet<>();
+
+    @Column(name = "listed_date")
+    private LocalDate listed_date;
+
 }
